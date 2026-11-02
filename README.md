@@ -4,11 +4,7 @@
 Jedno zdanie: dla każdej klatki meczu przewidujemy H/A/D/X; ranking: spellF1.
 
 ## Zespół i role
-olgaerni - Dane i EDA
-szcurek21 - Cechy
-adriankulig13 - Dekoder czasowy
-mrudnicki6 - Logika posiadania
-PSzarkowicz - Martwa piłka i infrastruktura
+olgaerni - Dane i EDA<br>szcurek21 - Cechy<br>adriankulig13 - Dekoder czasowy<br>mrudnicki6 - Logika posiadania<br>PSzarkowicz - Martwa piłka i infrastruktura
 
 ## Szybki start
 uv sync
