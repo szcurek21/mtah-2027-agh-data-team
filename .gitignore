@@ -1,6 +1,7 @@
 
 data/
 results/*.csv
+results/*.png
 .venv/
 __pycache__/
 *.pyc
