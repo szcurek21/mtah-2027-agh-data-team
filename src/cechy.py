@@ -1,6 +1,7 @@
 # ===IMPORTY===
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from src.decoder.load import load_frames, team_of
 
 # ===STAŁE===

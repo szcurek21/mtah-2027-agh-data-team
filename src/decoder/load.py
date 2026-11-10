@@ -205,7 +205,7 @@ def describe(match: str, view: str) -> None:
     print("Kolumny:")
     for c in frames.columns[:12]:
         print(f"  {c}: {frames[c].dtype}")
-    print(f"  ... i dalej {{slot}}_x / _y / _s dla każdego slotu")
+    print("  ... i dalej {slot}_x / _y / _s dla każdego slotu")
 
 
 if __name__ == "__main__":
