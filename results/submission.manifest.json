@@ -1,0 +1,13 @@
+{
+  "created_utc": "2026-11-16T22:40:43.101073+00:00",
+  "git_head": "ad99a4e0f909e342a1e118ee1fea3f48e6d422e9",
+  "mean_p_dead": 0.49168142676353455,
+  "n_dead_segments": 49,
+  "n_restart_frames": 47,
+  "output_csv": "results\\submission.csv",
+  "python": "3.14.6 (main, Jul 18 2026, 17:08:46) [MSC v.1944 64 bit (AMD64)]",
+  "pythonhashseed": "42",
+  "seed": 42,
+  "submission_sha256": "c0a05190f7610119f33708d6689eeda3f841d65912619383c5188f52ad59e227",
+  "uv_lock_sha256": "e22ab7c660a6bdcb87afc3ee48b0f9dda9af225c2c2cfcecc758238aa0392890"
+}
