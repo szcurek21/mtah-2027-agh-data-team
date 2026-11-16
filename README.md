@@ -18,6 +18,10 @@ UWAGA: dane meczu nie są w repo i nie wolno ich tu dodawać.
 ## Struktura repo
 src/ (moduły), notebooks/, results/ (CSV niecommitowane), docs/
 
+## Dokumentacja modułów i reguł
+- [Logika Posiadania Piłki (`src/possession/README.md`)](src/possession/README.md) – koncepcja, aksjomaty, reguły dla sytuacji stykowych i standardy analityczne.
+- [Podsumowanie reguł decyzyjnych (`docs/possession_rules.md`)](docs/possession_rules.md).
+
 ## Kontrakt między modułami
 tabela: moduł, wejście (kolumny), wyjście (kolumny)
 

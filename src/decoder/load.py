@@ -13,6 +13,7 @@ DATA_DIR = Path(
     os.environ.get("MTAH_DATA_DIR", Path.home() / "more-than-a-hack-2027" / "data")
 )
 FPS = 25
+PITCH_LENGTH = 105.3  
 
 HALF_BLOCKS: dict[str, list[tuple[int, int, int]]] = {
     "BAR-ATH": [(1, 11185, 90651), (2, 110808, 190197)],
@@ -73,6 +74,12 @@ def _clean(wide: pd.DataFrame) -> pd.DataFrame:
         if c in wide.columns:
             cols[c] = pd.to_numeric(wide[c], errors="coerce").to_numpy("float32")
     return pd.DataFrame(cols)
+
+
+def _fix_pitch_length(frames: pd.DataFrame, meta_length: float) -> None:
+    """kloppy liczy metry z długości w metadanych (105), a prawdziwa to 105.3 m."""
+    xs = [c for c in frames.columns if c.endswith("_x")]
+    frames[xs] *= PITCH_LENGTH / meta_length
 
 
 def _add_halves(frames: pd.DataFrame, blocks: list[tuple[int, int, int]]) -> None:
@@ -154,11 +161,13 @@ def load_frames(
     data_dir: Path = DATA_DIR,
     use_cache: bool = True,
 ) -> pd.DataFrame:
-    cache = data_dir / "cache" / f"{match}_{view}_frames.pkl"
+    cache = data_dir / "cache" / f"{match}_{view}_frames_v2.pkl"
     if use_cache and cache.exists():
         return pd.read_pickle(cache)
 
-    frames = _clean(load_dataset(match, view, data_dir).to_df())
+    ds = load_dataset(match, view, data_dir)
+    frames = _clean(ds.to_df())
+    _fix_pitch_length(frames, ds.metadata.pitch_dimensions.pitch_length or 105)
     if view == "tactical" and match in HALF_BLOCKS:
         _add_halves(frames, HALF_BLOCKS[match])
         frames.attrs["flipped"] = _orient(
