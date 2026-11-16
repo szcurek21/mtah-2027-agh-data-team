@@ -201,10 +201,10 @@ def extract_tracking_signals(
     # Find transitions from visible to not visible
     nan_transitions = np.where(nan_mask[1:] & ~nan_mask[:-1])[0] + 1
     vis_transitions = np.where(~nan_mask[1:] & nan_mask[:-1])[0] + 1
-    
+
     nan_gap = np.zeros(N_FRAMES, dtype=bool)
     teleport_gap = np.zeros(N_FRAMES, dtype=bool)
-    
+
     for start in nan_transitions:
         # Find corresponding end (next visible transition)
         end_idx = np.searchsorted(vis_transitions, start)
@@ -212,11 +212,11 @@ def extract_tracking_signals(
             end = vis_transitions[end_idx]
         else:
             end = N_FRAMES - 1
-        
+
         length = end - start + 1
         if length >= LONG_GAP_FRAMES:
             nan_gap[start : end + 1] = True
-            
+
             last_vis = start - 1
             next_vis = end + 1
             if last_vis >= 0 and next_vis < N_FRAMES and visible[last_vis] and visible[next_vis]:
@@ -239,7 +239,7 @@ def extract_tracking_signals(
         # Vectorized approach using broadcasting
         center = np.nanmean(positions, axis=1)  # (N_FRAMES, 2)
         diff = positions - center[:, np.newaxis, :]  # (N_FRAMES, N_PLAYERS, 2)
-        dist_sq = np.sum(diff ** 2, axis=2)  # (N_FRAMES, N_PLAYERS)
+        dist_sq = np.sum(diff**2, axis=2)  # (N_FRAMES, N_PLAYERS)
         # Handle NaN properly: replace NaN positions with center for mean calculation
         is_valid = ~np.isnan(positions).any(axis=2)  # (N_FRAMES, N_PLAYERS)
         dist_sq = np.where(is_valid, dist_sq, np.nan)

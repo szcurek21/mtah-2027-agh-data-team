@@ -87,21 +87,24 @@ import numpy.typing as npt
 
 N_FRAMES = 199_319
 
+
 @dataclass(frozen=True)
 class DeadSegment:
-    start: int          # pierwsza ramka D (włącznie)
-    end: int            # ostatnia ramka D (włącznie)
-    kind: Literal["throw_in", "corner", "goal_kick", "free_kick",
-                  "kick_off", "goal", "other", "non_play"]
-    confidence: float   # [0, 1]
+    start: int  # pierwsza ramka D (włącznie)
+    end: int  # ostatnia ramka D (włącznie)
+    kind: Literal[
+        "throw_in", "corner", "goal_kick", "free_kick", "kick_off", "goal", "other", "non_play"
+    ]
+    confidence: float  # [0, 1]
     start_sigma: float  # niepewność granicy w ramkach
     end_sigma: float
 
+
 @dataclass(frozen=True)
 class DeadBallOutput:
-    p_dead: npt.NDArray[np.float32]      # (N_FRAMES,), P(piłka martwa)
-    non_play: npt.NDArray[np.bool_]      # (N_FRAMES,), twarda maska struktury meczu
-    segments: tuple[DeadSegment, ...]    # posortowane po start, bez nakładania
+    p_dead: npt.NDArray[np.float32]  # (N_FRAMES,), P(piłka martwa)
+    non_play: npt.NDArray[np.bool_]  # (N_FRAMES,), twarda maska struktury meczu
+    segments: tuple[DeadSegment, ...]  # posortowane po start, bez nakładania
     restart_frames: npt.NDArray[np.int32]  # ramki restartu (koniec D)
 ```
 

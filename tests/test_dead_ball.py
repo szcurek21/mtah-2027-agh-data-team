@@ -38,6 +38,7 @@ from src.dead_ball.smart_tagging import (
 
 FIXTURE_XML = Path(__file__).parent / "fixtures" / "smart_tagging_sample.xml"
 
+
 def _structure_detector() -> DeadBallDetector:
     return DeadBallDetector(
         skip_tag_discovery=True,
@@ -249,9 +250,9 @@ class TestTagCalibration(unittest.TestCase):
         video_frame = np.arange(n_frames)
         ball_x = np.zeros(n_frames, dtype=np.float32)
         ball_y = np.zeros(n_frames, dtype=np.float32)
-        ball_speed = np.concatenate(
-            [np.full(50, 4.0), np.full(100, 0.5), np.full(50, 4.0)]
-        ).astype(np.float32)
+        ball_speed = np.concatenate([np.full(50, 4.0), np.full(100, 0.5), np.full(50, 4.0)]).astype(
+            np.float32
+        )
         p_s = np.full(n_frames, 3.0, dtype=np.float32)
 
         frames = pd.DataFrame(
@@ -268,9 +269,7 @@ class TestTagCalibration(unittest.TestCase):
         signals = extract_tracking_signals(frames)
 
         # Create tag segments (offset from true kinematic boundary)
-        tag_segments = [
-            DeadSegment(start=40, end=160, kind="throw_in", confidence=0.85)
-        ]
+        tag_segments = [DeadSegment(start=40, end=160, kind="throw_in", confidence=0.85)]
 
         offsets = calibrate_tag_offsets(tag_segments, signals)
         self.assertIsInstance(offsets, dict)
@@ -279,9 +278,7 @@ class TestTagCalibration(unittest.TestCase):
 
     def test_apply_corrections_shifts_boundaries(self):
 
-        segments = [
-            DeadSegment(start=100, end=150, kind="throw_in", confidence=0.85)
-        ]
+        segments = [DeadSegment(start=100, end=150, kind="throw_in", confidence=0.85)]
         offsets = {"throw_in": (5.0, -3.0)}  # Shift start +5, end -3
 
         corrected = apply_tag_corrections(segments, offsets)

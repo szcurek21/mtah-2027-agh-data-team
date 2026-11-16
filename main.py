@@ -164,9 +164,7 @@ def stage_dead_ball(
     return result
 
 
-def stage_live_possession(
-    data: dict, features: dict, dead_ball_out: DeadBallOutput
-) -> np.ndarray:
+def stage_live_possession(data: dict, features: dict, dead_ball_out: DeadBallOutput) -> np.ndarray:
     """Stage 4 (mrudnicki6 - Possession Logic): Classify H vs A for live frames."""
     possession_labels = np.full(N_FRAMES, "H", dtype="<U1")
     possession_labels[SECOND_HALF_START : SECOND_HALF_END + 1] = "A"

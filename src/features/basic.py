@@ -1,17 +1,15 @@
-
-
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
+SMOOTH_SEC = 0.4
+MAX_PLAYER_SPEED = 12.0
+MAX_PLAYER_ACC = 10.0
+MAX_BALL_SPEED = 40.0
+BALL_SPIKE_WIN = 7
+BALL_SPIKE_M = 2.0
 
-SMOOTH_SEC = 0.4         
-MAX_PLAYER_SPEED = 12.0   
-MAX_PLAYER_ACC = 10.0    
-MAX_BALL_SPEED = 40.0     
-BALL_SPIKE_WIN = 7       
-BALL_SPIKE_M = 2.0       
 
 def slot_ids(frames: pd.DataFrame) -> list[str]:
     return [c[:-2] for c in frames.columns if c.endswith("_x") and c != "ball_x"]
@@ -43,7 +41,6 @@ def _smooth(df: pd.DataFrame, seg: np.ndarray, window: int) -> pd.DataFrame:
 def _derivative(df: pd.DataFrame, seg: np.ndarray, fps: float) -> pd.DataFrame:
     g = df.groupby(seg, sort=False)
     return (g.shift(-1) - g.shift(1)) * (fps / 2.0)
-
 
 
 def clean_ball(frames: pd.DataFrame) -> pd.DataFrame:
@@ -111,20 +108,19 @@ def _nanmin_arg(d: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _team_shape(x: np.ndarray, y: np.ndarray) -> dict[str, np.ndarray]:
-        with np.errstate(all="ignore"), _quiet():
-            cx, cy = np.nanmean(x, axis=1), np.nanmean(y, axis=1)
-            return {
-                "cx": cx,
-                "cy": cy,
-                "len": np.nanmax(x, axis=1) - np.nanmin(x, axis=1),
-                "wid": np.nanmax(y, axis=1) - np.nanmin(y, axis=1),
-                "spread": np.nanmean(np.hypot(x - cx[:, None], y - cy[:, None]), axis=1),
-                "n": (~np.isnan(x)).sum(axis=1),
+    with np.errstate(all="ignore"), _quiet():
+        cx, cy = np.nanmean(x, axis=1), np.nanmean(y, axis=1)
+        return {
+            "cx": cx,
+            "cy": cy,
+            "len": np.nanmax(x, axis=1) - np.nanmin(x, axis=1),
+            "wid": np.nanmax(y, axis=1) - np.nanmin(y, axis=1),
+            "spread": np.nanmean(np.hypot(x - cx[:, None], y - cy[:, None]), axis=1),
+            "n": (~np.isnan(x)).sum(axis=1),
         }
 
 
 class _quiet:
-
     def __enter__(self):
         import warnings
 
@@ -151,9 +147,9 @@ def frame_features(frames: pd.DataFrame, teams: dict[str, str]) -> pd.DataFrame:
     team = np.array([teams[s] for s in slots])
     home, away = team == "home", team == "away"
 
-    dist = np.hypot(x - bx, y - by)  
+    dist = np.hypot(x - bx, y - by)
     idx, dmin = _nanmin_arg(dist)
-    slot_arr = np.array(slots + [None], dtype=object)  
+    slot_arr = np.array(slots + [None], dtype=object)
     team_arr = np.array([str(t) for t in team] + [None], dtype=object)
 
     visible = ~np.isnan(bx[:, 0])
@@ -174,7 +170,9 @@ def frame_features(frames: pd.DataFrame, teams: dict[str, str]) -> pd.DataFrame:
     return pd.DataFrame(out, index=frames.index)
 
 
-def build_features(frames: pd.DataFrame, teams: dict[str, str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def build_features(
+    frames: pd.DataFrame, teams: dict[str, str]
+) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     clean = clean_ball(frames)
     kin, feat = kinematics(clean), frame_features(clean, teams)
@@ -193,9 +191,17 @@ if __name__ == "__main__":
     speeds = kin[[c for c in kin.columns if c.endswith("_speed")]].to_numpy().ravel()
     speeds = speeds[~np.isnan(speeds)]
     print(f"Klatki: {len(feat)}, kolumny kinematyki: {kin.shape[1]}, cech klatki: {feat.shape[1]}")
-    print(f"Piłka widoczna: {feat['ball_visible'].mean():.1%} "
-          f"(usunięte skoki piłki: {feat.attrs['ball_spikes_removed']} klatek)")
+    print(
+        f"Piłka widoczna: {feat['ball_visible'].mean():.1%} "
+        f"(usunięte skoki piłki: {feat.attrs['ball_spikes_removed']} klatek)"
+    )
     bs = kin["ball_speed_calc"].dropna()
-    print(f"Prędkość piłki po czyszczeniu: mediana {bs.median():.2f} m/s, 99.9 pct {bs.quantile(.999):.1f} m/s")
-    print(f"Prędkość zawodników: mediana {np.median(speeds):.2f} m/s, 99. percentyl {np.percentile(speeds, 99):.2f} m/s")
-    print(f"Najbliższy do piłki (gdy piłka widoczna): {feat['nearest_dist'].median():.2f} m (mediana)")
+    print(
+        f"Prędkość piłki po czyszczeniu: mediana {bs.median():.2f} m/s, 99.9 pct {bs.quantile(0.999):.1f} m/s"
+    )
+    print(
+        f"Prędkość zawodników: mediana {np.median(speeds):.2f} m/s, 99. percentyl {np.percentile(speeds, 99):.2f} m/s"
+    )
+    print(
+        f"Najbliższy do piłki (gdy piłka widoczna): {feat['nearest_dist'].median():.2f} m (mediana)"
+    )

@@ -80,9 +80,7 @@ def resolve_smart_tagging_path(
             raise FileNotFoundError(f"Smart tagging XML not found: {path}")
         return path
 
-    data_dir = Path(
-        os.environ.get("MTAH_DATA_DIR", Path.home() / "more-than-a-hack-2027" / "data")
-    )
+    data_dir = Path(os.environ.get("MTAH_DATA_DIR", Path.home() / "more-than-a-hack-2027" / "data"))
     candidates = sorted(data_dir.rglob("*smart_tagging.xml")) + sorted(
         Path("data").rglob("*smart_tagging.xml")
     )
@@ -185,9 +183,7 @@ class DeadBallDetector:
         untagged = np.zeros(N_FRAMES, dtype=bool)
         evidence = None
         if signals is not None:
-            untagged = detect_untagged_stoppages(
-                signals, self.non_play_mask, tag_search
-            )
+            untagged = detect_untagged_stoppages(signals, self.non_play_mask, tag_search)
             evidence = signals.evidence
 
         p_dead = fuse_p_dead(
@@ -294,9 +290,7 @@ class DeadBallDetector:
             delta_pre_frames=self.delta_pre_frames,
             delta_post_frames=self.delta_post_frames,
         )
-        print(
-            f"Layer B: {len(tag_segments)} set-piece/goal candidates from {path.name}"
-        )
+        print(f"Layer B: {len(tag_segments)} set-piece/goal candidates from {path.name}")
         return search_mask, core_mask, tag_segments
 
 

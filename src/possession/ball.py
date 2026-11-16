@@ -1,4 +1,5 @@
 """4.3 Czyszczenie trajektorii piłki: SG(7,2), krótkie interpolacje, ball_visible."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -36,9 +37,7 @@ def sg_coeffs(window: int, poly: int) -> np.ndarray:
     return G[0]
 
 
-def _smooth_segments(
-    y: np.ndarray, valid: np.ndarray, coeffs: np.ndarray
-) -> np.ndarray:
+def _smooth_segments(y: np.ndarray, valid: np.ndarray, coeffs: np.ndarray) -> np.ndarray:
     """SG na każdym ciągłym fragmencie `valid` o długości >= len(coeffs)."""
     n = len(y)
     out = np.full_like(y, np.nan, dtype="float64")
@@ -59,14 +58,13 @@ def _smooth_segments(
             continue
         pad = np.pad(seg, half, mode="edge")
         from numpy.lib.stride_tricks import sliding_window_view
+
         windows = sliding_window_view(pad, w)  # (L, w)
         out[s:e] = windows @ coeffs
     return out
 
 
-def _interp_short_gaps(
-    xy: np.ndarray, max_gap: int
-) -> tuple[np.ndarray, np.ndarray]:
+def _interp_short_gaps(xy: np.ndarray, max_gap: int) -> tuple[np.ndarray, np.ndarray]:
     """Wypełnia luki <= max_gap liniowo. Zwraca (xy_filled, interp_mask).
 
     xy_filled ma NaN tylko w długich lukach i poza nimi.
@@ -93,16 +91,12 @@ def _interp_short_gaps(
             # luka na brzegu: nie interpolujemy (brak obu końców)
             continue
         for c in range(2):
-            filled[s:e, c] = np.interp(
-                idx[s:e], [s - 1, e], [xy[s - 1, c], xy[e, c]]
-            )
+            filled[s:e, c] = np.interp(idx[s:e], [s - 1, e], [xy[s - 1, c], xy[e, c]])
         interp[s:e] = True
     return filled, interp
 
 
-def clean_ball_track(
-    ball_xy: np.ndarray, params: PossessionParams | None = None
-) -> BallTrack:
+def clean_ball_track(ball_xy: np.ndarray, params: PossessionParams | None = None) -> BallTrack:
     """Pełne czyszczenie toru piłki wg §4.3.
 
     Wejście: (N, 2) pozycje piłki (dowolna jednostka, ale speed wtedy w tej

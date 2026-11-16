@@ -16,6 +16,7 @@ EXPECTED_FRAMES = 199_319
 
 class ValidationError(Exception):
     """Raised when a submission file violates competition rules."""
+
     pass
 
 
@@ -67,7 +68,9 @@ def validate_submission_file(csv_path: str | Path) -> Tuple[bool, Dict[str, int]
                 )
 
             if label not in ALLOWED_LABELS:
-                raise ValidationError(f"Row {row_idx}: invalid label '{label}' (allowed: H, A, D, X)")
+                raise ValidationError(
+                    f"Row {row_idx}: invalid label '{label}' (allowed: H, A, D, X)"
+                )
 
             counts[label] += 1
 
@@ -86,10 +89,10 @@ def validate_submission_file(csv_path: str | Path) -> Tuple[bool, Dict[str, int]
     print(f"✅ SUBMISSION VALIDATION PASSED: {path.name}")
     print(f"Total rows: {expected_frame:,}")
     print(
-        f"Distribution: H={counts['H']} ({counts['H']/expected_frame*100:.1f}%), "
-        f"A={counts['A']} ({counts['A']/expected_frame*100:.1f}%), "
-        f"D={counts['D']} ({counts['D']/expected_frame*100:.1f}%), "
-        f"X={counts['X']} ({counts['X']/expected_frame*100:.1f}%)"
+        f"Distribution: H={counts['H']} ({counts['H'] / expected_frame * 100:.1f}%), "
+        f"A={counts['A']} ({counts['A'] / expected_frame * 100:.1f}%), "
+        f"D={counts['D']} ({counts['D'] / expected_frame * 100:.1f}%), "
+        f"X={counts['X']} ({counts['X'] / expected_frame * 100:.1f}%)"
     )
     print(f"Transitions: {transitions:,}")
     print("=" * 60)

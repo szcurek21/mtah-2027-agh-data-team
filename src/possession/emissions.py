@@ -9,6 +9,7 @@ Dla każdej klatki żywej gry, dla drużyn c ∈ {H, A}:
 Aksjomat lotu (§4.5): gdy piłka jest w locie (duża prędkość lub proxy
 powietrzne), w_vis = 0 — stan się utrzymuje, przejęcie niemożliwe.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -49,7 +50,9 @@ def _min_dist_chunk(ball: np.ndarray, players: np.ndarray) -> np.ndarray:
 
 
 def team_min_distances(
-    ball_xy: np.ndarray, players_h: np.ndarray, players_a: np.ndarray,
+    ball_xy: np.ndarray,
+    players_h: np.ndarray,
+    players_a: np.ndarray,
     chunk: int = 20000,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Minimalne odległości piłka-gracz per drużyna, chunkowo (pamięć)."""
@@ -91,8 +94,9 @@ def compute_emissions(
     params = params or PossessionParams()
     ball = track.xy
     d_h, d_a = team_min_distances(ball, players_h, players_a)
-    d_min = np.fmin(np.where(np.isfinite(d_h), d_h, np.inf),
-                    np.where(np.isfinite(d_a), d_a, np.inf))
+    d_min = np.fmin(
+        np.where(np.isfinite(d_h), d_h, np.inf), np.where(np.isfinite(d_a), d_a, np.inf)
+    )
     d_min[~np.isfinite(d_min)] = np.nan
 
     flight = flight_mask(track, d_min, params)

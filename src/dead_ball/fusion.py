@@ -119,10 +119,9 @@ def detect_untagged_stoppages(
             length = end - start + 1
             if length < min_frames:
                 continue
-            quiet_ball = (
-                (~signals.ball_visible[start : end + 1]).mean() > 0.4
-                or float(np.median(signals.ball_speed[start : end + 1])) < 1.0
-            )
+            quiet_ball = (~signals.ball_visible[start : end + 1]).mean() > 0.4 or float(
+                np.median(signals.ball_speed[start : end + 1])
+            ) < 1.0
             if quiet_ball:
                 out[start : end + 1] = True
         else:
@@ -166,9 +165,7 @@ def annotate_segments(
                 i += 1
             end = i - 1
             if non_play[start : end + 1].all():
-                segments.append(
-                    DeadSegment(start=start, end=end, kind="non_play", confidence=1.0)
-                )
+                segments.append(DeadSegment(start=start, end=end, kind="non_play", confidence=1.0))
             else:
                 segments.append(_label_from_tags(start, end, tag_segments, non_play))
         else:

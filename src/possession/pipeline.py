@@ -13,20 +13,20 @@ Wyjście: PossessionResult — CZYSTO ewidencja:
 Etykiety 'D' i ostateczna polityka 'X'/minimalnych czasów trwania należą do
 modułu martwej piłki i dekodera czasowego zespołu — ten moduł ich nie emituje.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
 from .ball import BallTrack, clean_ball_track
-from .config import FPS, PossessionParams
+from .config import PossessionParams
 from .decoder import DecodeResult, decode_possession
 from .emissions import EmissionResult, compute_emissions
 from .geometry import (
     CoordScale,
-    apply_coord_scale,
     ball_xy_meters,
     detect_coord_scale,
     infer_slot_teams,
@@ -36,7 +36,6 @@ from .restarts import (
     RestartEvent,
     apply_executor_teams,
     detect_restarts,
-    live_segments,
 )
 
 
@@ -44,14 +43,14 @@ from .restarts import (
 class PossessionResult:
     """Wynik modułu posiadania dla pełnego meczu (N = liczba klatek)."""
 
-    p_home: np.ndarray          # (N,) float w [0,1]; 0.5 = brak ewidencji
-    confidence: np.ndarray      # (N,) float w [0,1]
-    labels: np.ndarray          # (N,) '<U1': 'H'/'A' na żywych, 'X' poza nimi
-    boundaries: list            # [(frame, from_label, to_label)]
+    p_home: np.ndarray  # (N,) float w [0,1]; 0.5 = brak ewidencji
+    confidence: np.ndarray  # (N,) float w [0,1]
+    labels: np.ndarray  # (N,) '<U1': 'H'/'A' na żywych, 'X' poza nimi
+    boundaries: list  # [(frame, from_label, to_label)]
     decode: DecodeResult
     emissions: EmissionResult
     restarts: list[RestartEvent]
-    live_mask: np.ndarray       # True = klatka żywa (od ~dead_mask)
+    live_mask: np.ndarray  # True = klatka żywa (od ~dead_mask)
 
     def frame_labels(self, dead_mask: np.ndarray | None = None) -> np.ndarray:
         """Pełna tablica etykiet do zgłoszenia: 'H'/'A'/'D'/'X'.
@@ -66,9 +65,7 @@ class PossessionResult:
         return out
 
 
-def _resolve_teams(
-    frames: pd.DataFrame, teams: dict[str, str] | None
-) -> dict[str, str]:
+def _resolve_teams(frames: pd.DataFrame, teams: dict[str, str] | None) -> dict[str, str]:
     if teams:
         return teams
     return infer_slot_teams(frames)
@@ -142,12 +139,8 @@ def predict_possession(
         dead_mask = np.zeros(n, dtype=bool)
     live_mask = ~np.asarray(dead_mask, dtype=bool)
 
-    restarts = detect_restarts(
-        dead_mask, segments=segments, ball_xy=track.xy, params=params
-    )
-    restarts = apply_executor_teams(
-        restarts, track.xy, players["H"], players["A"], params
-    )
+    restarts = detect_restarts(dead_mask, segments=segments, ball_xy=track.xy, params=params)
+    restarts = apply_executor_teams(restarts, track.xy, players["H"], players["A"], params)
 
     # --- priory wykonawców w emisjach + init priory dekodera ---
     s_adj, init_priors = _restart_priors(em.s, restarts, params)
@@ -156,8 +149,7 @@ def predict_possession(
     dec = decode_possession(s_adj, live_mask, params, init_priors)
 
     # --- 4.8 wyjście ---
-    p_home = 1.0 / (1.0 + np.exp(-np.clip(s_adj, -params.evidence_clip,
-                                         params.evidence_clip)))
+    p_home = 1.0 / (1.0 + np.exp(-np.clip(s_adj, -params.evidence_clip, params.evidence_clip)))
     # poza żywymi klatkami brak ewidencji -> 0.5
     p_home = np.where(live_mask, p_home, 0.5)
 
@@ -172,9 +164,7 @@ def predict_possession(
         if r.team not in ("H", "A"):
             continue
         f1 = min(r.frame + params.restart_window, n)
-        conf[r.frame : f1] = np.maximum(
-            conf[r.frame : f1], 0.5 * min(1.0, r.weight)
-        )
+        conf[r.frame : f1] = np.maximum(conf[r.frame : f1], 0.5 * min(1.0, r.weight))
 
     return PossessionResult(
         p_home=p_home.astype(np.float64),
