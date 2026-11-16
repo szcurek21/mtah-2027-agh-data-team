@@ -1,4 +1,5 @@
 """Geometria boiska: konwersja na metry i macierze pozycji zawodników (§4.1–4.2)."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -51,9 +52,7 @@ def _slot_ids(frames: pd.DataFrame) -> list[str]:
     return [c[:-2] for c in frames.columns if c.endswith("_x") and c != "ball_x"]
 
 
-def _all_player_xy(
-    frames: pd.DataFrame, scale: CoordScale
-) -> tuple[np.ndarray, list[str]]:
+def _all_player_xy(frames: pd.DataFrame, scale: CoordScale) -> tuple[np.ndarray, list[str]]:
     """Pozycje wszystkich slotów: (N, S, 2) float32 w metrach + lista slotów."""
     slots = _slot_ids(frames)
     n = len(frames)
@@ -100,6 +99,7 @@ def team_arrays(
 # ---------------------------------------------------------------------------
 # 4.1 Fallback: przypisanie drużyn do slotów, gdy nie ma mapowania z XML
 # ---------------------------------------------------------------------------
+
 
 def _kmeans2(points: np.ndarray, iters: int = 30) -> np.ndarray:
     """Deterministyczny k-means (k=2) na punktach (M,2). Zwraca etykiety 0/1."""
@@ -160,7 +160,7 @@ def infer_slot_teams(
         anchors = [min(params.team_anchor_offset, n - 1)]
 
     votes = np.zeros((len(slots), 2), dtype=np.int64)
-    gate2 = np.float32(params.team_gate_m ** 2)
+    gate2 = np.float32(params.team_gate_m**2)
 
     for anchor in anchors:
         pts = xy_all[anchor]
@@ -172,10 +172,10 @@ def infer_slot_teams(
         home_cluster = int(np.argmin(mean_x))  # home broni lewej bramki
         anchor_lab = np.full(len(slots), -1, dtype=np.int8)
         anchor_lab[valid] = np.where(cl[valid] == home_cluster, 1, 0)
-        votes[np.arange(len(slots)), np.clip(anchor_lab, 0, 1)] += (anchor_lab >= 0)
+        votes[np.arange(len(slots)), np.clip(anchor_lab, 0, 1)] += anchor_lab >= 0
 
         for direction in (+1, -1):
-            prev_lab = anchor_lab.copy()          # etykiety klatki anchor
+            prev_lab = anchor_lab.copy()  # etykiety klatki anchor
             prev_xy = pts.copy()
             idx = anchor + direction
             while 0 <= idx < n:
@@ -193,7 +193,7 @@ def infer_slot_teams(
                     take = mind <= gate2
                     cols = np.flatnonzero(cur_valid)
                     lab[cols[take]] = prev_lab[src_idx[take]]
-                votes[np.arange(len(slots)), np.clip(lab, 0, 1)] += (lab >= 0)
+                votes[np.arange(len(slots)), np.clip(lab, 0, 1)] += lab >= 0
                 prev_lab, prev_xy = lab, cur_xy
                 idx += direction
 

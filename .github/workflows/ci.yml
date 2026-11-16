@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dead_ball, feature/*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies with frozen lockfile
+        run: uv sync --frozen
+
+      - name: Run linting (ruff)
+        run: uv run ruff check src tests main.py
+
+      - name: Run formatting check (ruff format)
+        run: uv run ruff format --check src tests main.py
+
+      - name: Run tests
+        run: uv run pytest tests/ -v
+
+      - name: Run golden hash test
+        run: uv run pytest tests/test_dead_ball.py::TestDeterminismAndInvariants::test_golden_hash_full_submission -v
+
+      - name: Test caching works
+        run: |
+          uv run python main.py --allow-missing-tags --skip-validation --seed 42
+          # Second run should use cache
+          uv run python main.py --allow-missing-tags --skip-validation --seed 42
+          # Clear cache and run again
+          uv run python main.py --clear-cache --allow-missing-tags --skip-validation --seed 42
+          # Run with --no-cache flag
+          uv run python main.py --no-cache --allow-missing-tags --skip-validation --seed 42
+
+      - name: Run pipeline with structure-only mode
+        run: uv run python main.py --allow-missing-tags --skip-validation --seed 42
+
+      - name: Verify submission file
+        run: uv run python -c "from src.utils.validation import validate_submission_file; validate_submission_file('results/submission.csv')"
+
+      - name: Check manifest exists
+        run: test -f results/submission.csv.manifest.json

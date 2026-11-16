@@ -27,13 +27,20 @@ DEFAULT_HALF_BLOCKS: list[tuple[int, int, int]] = [
 @dataclass(frozen=True)
 class SmoothConfig:
     """Parametry wynikające z priorytetów domenowych (25 FPS), bez strojenia na teście."""
-    min_spell: int = 25           # H/A krótsze niż 1.0 s (25 klatek) traktujemy jako szum
-    min_dead: int = 25            # D krótsze niż 1.0 s (25 klatek) traktujemy jako szum
-    mode_win: int = 7             # okno głosowania większościowego (~0.28 s) na pojedyncze przeskoki H<->A
-    bridge_gap: int = 18          # luki X (~0.72 s) sklejane przed KROKIEM 2, jeśli suma sąsiadów >= min_len
-    micro_gap: int = 6            # mikro-zaniki trackingu (~0.24 s) sklejane przed filtracją szumu
-    max_fill_gap: int = 125       # luki (X) do 5.0 s (125 klatek) między tą samą stabilną akcją wypełniamy
-    max_start_backfill: int = 750 # maks. luka X na starcie połowy (30 s) uzupełniana pierwszą akcją
+
+    min_spell: int = 25  # H/A krótsze niż 1.0 s (25 klatek) traktujemy jako szum
+    min_dead: int = 25  # D krótsze niż 1.0 s (25 klatek) traktujemy jako szum
+    mode_win: int = 7  # okno głosowania większościowego (~0.28 s) na pojedyncze przeskoki H<->A
+    bridge_gap: int = (
+        18  # luki X (~0.72 s) sklejane przed KROKIEM 2, jeśli suma sąsiadów >= min_len
+    )
+    micro_gap: int = 6  # mikro-zaniki trackingu (~0.24 s) sklejane przed filtracją szumu
+    max_fill_gap: int = (
+        125  # luki (X) do 5.0 s (125 klatek) między tą samą stabilną akcją wypełniamy
+    )
+    max_start_backfill: int = (
+        750  # maks. luka X na starcie połowy (30 s) uzupełniana pierwszą akcją
+    )
 
     def min_len(self, lab: int) -> int:
         return self.min_dead if lab == D else self.min_spell
@@ -101,9 +108,17 @@ def smooth_half(codes: np.ndarray, cfg: SmoothConfig = SmoothConfig()) -> np.nda
             if labs[i - 1] == labs[i + 1] != UNK:
                 target = labs[i - 1]
                 neighbors_len = lens[i - 1] + lens[i + 1]
-                is_micro_x = (labs[i] == UNK and lens[i] <= cfg.micro_gap)
-                is_bridge_x = (labs[i] == UNK and lens[i] <= cfg.bridge_gap and neighbors_len >= cfg.min_len(target))
-                is_glitch = (labs[i] != UNK and lens[i] <= cfg.micro_gap and neighbors_len >= cfg.min_len(target))
+                is_micro_x = labs[i] == UNK and lens[i] <= cfg.micro_gap
+                is_bridge_x = (
+                    labs[i] == UNK
+                    and lens[i] <= cfg.bridge_gap
+                    and neighbors_len >= cfg.min_len(target)
+                )
+                is_glitch = (
+                    labs[i] != UNK
+                    and lens[i] <= cfg.micro_gap
+                    and neighbors_len >= cfg.min_len(target)
+                )
                 if is_micro_x or is_bridge_x or is_glitch:
                     labs[i] = target
                     changed = True
@@ -134,16 +149,20 @@ def smooth_half(codes: np.ndarray, cfg: SmoothConfig = SmoothConfig()) -> np.nda
 
     # KROK 3: Wypełnij luki (X) do max_fill_gap (5 s) między tymi samymi stabilnymi etykietami
     for i in range(1, len(labs) - 1):
-        if (labs[i] == UNK and labs[i - 1] == labs[i + 1] != UNK
-                and lens[i] <= cfg.max_fill_gap):
+        if labs[i] == UNK and labs[i - 1] == labs[i + 1] != UNK and lens[i] <= cfg.max_fill_gap:
             labs[i] = labs[i - 1]
     labs, lens = _merge(labs, lens)
 
     # KROK 4: Backfill na samym starcie połowy (z limitem max_start_backfill).
     # Pomijamy go po awaryjnym fallbacku: uratowany, krótki przebieg jest niepewny,
     # więc nie rozszerzamy go zgadywaniem na początek połowy.
-    if (not rescued and len(labs) >= 2 and labs[0] == UNK and labs[1] != UNK
-            and lens[0] <= cfg.max_start_backfill):
+    if (
+        not rescued
+        and len(labs) >= 2
+        and labs[0] == UNK
+        and labs[1] != UNK
+        and lens[0] <= cfg.max_start_backfill
+    ):
         labs[0] = labs[1]
         labs, lens = _merge(labs, lens)
 
@@ -175,7 +194,9 @@ def smooth_labels(raw, half, cfg: SmoothConfig = SmoothConfig()) -> np.ndarray:
         m = half_arr == h
         idx = np.flatnonzero(m)
         if len(idx) > 1 and (idx[-1] - idx[0] + 1 != len(idx)):
-            raise ValueError(f"Połowa {h} nie jest ciągłym blokiem klatek (zawiera dziury NaN w środku)!")
+            raise ValueError(
+                f"Połowa {h} nie jest ciągłym blokiem klatek (zawiera dziury NaN w środku)!"
+            )
         out[m] = smooth_half(codes[m], cfg)
 
     return TO_LABEL[out]
@@ -193,34 +214,39 @@ def spell_stats(
         x_pct_sm = float((sub_sm == "X").mean() * 100)
         x_pct_raw = (
             float((pd.Series(raw[m]).isna() | (pd.Series(raw[m]) == "X")).mean() * 100)
-            if raw is not None else np.nan
+            if raw is not None
+            else np.nan
         )
 
         # Symulacja zachowania ewaluatora spellF1: 'X' dziedziczy ostatnią znaną etykietę (ffill)
         inherited = sub_sm.replace("X", np.nan).ffill().dropna()
         if inherited.empty:
-            rows.append({
-                "half": int(h),
-                "spells": 0,
-                "switches": 0,
-                "median_s": np.nan,
-                "p10_s": np.nan,
-                "raw_X_%": round(x_pct_raw, 1),
-                "smooth_X_%": round(x_pct_sm, 1),
-            })
+            rows.append(
+                {
+                    "half": int(h),
+                    "spells": 0,
+                    "switches": 0,
+                    "median_s": np.nan,
+                    "p10_s": np.nan,
+                    "raw_X_%": round(x_pct_raw, 1),
+                    "smooth_X_%": round(x_pct_sm, 1),
+                }
+            )
             continue
 
         runs = (inherited != inherited.shift()).cumsum()
         lens = inherited.groupby(runs).size()
-        rows.append({
-            "half": int(h),
-            "spells": int(len(lens)),
-            "switches": int(len(lens) - 1),
-            "median_s": float(lens.median() / FPS),
-            "p10_s": float(lens.quantile(0.1) / FPS),
-            "raw_X_%": round(x_pct_raw, 1),
-            "smooth_X_%": round(x_pct_sm, 1),
-        })
+        rows.append(
+            {
+                "half": int(h),
+                "spells": int(len(lens)),
+                "switches": int(len(lens) - 1),
+                "median_s": float(lens.median() / FPS),
+                "p10_s": float(lens.quantile(0.1) / FPS),
+                "raw_X_%": round(x_pct_raw, 1),
+                "smooth_X_%": round(x_pct_sm, 1),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -236,10 +262,12 @@ def write_submission(labels_array, output_path, n_frames: int = N_FRAMES) -> pd.
     if bad:
         raise ValueError(f"Niedozwolone etykiety: {sorted(map(str, bad))}. Dozwolone: {ALLOWED}.")
 
-    sub = pd.DataFrame({
-        "frame": np.arange(n_frames, dtype=np.int64),
-        "label": labels.astype(str).to_numpy(),
-    })
+    sub = pd.DataFrame(
+        {
+            "frame": np.arange(n_frames, dtype=np.int64),
+            "label": labels.astype(str).to_numpy(),
+        }
+    )
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -262,9 +290,7 @@ def write_submission(labels_array, output_path, n_frames: int = N_FRAMES) -> pd.
     return sub
 
 
-def load_raw_labels(
-    path, half: np.ndarray | None = None, n_frames: int = N_FRAMES
-) -> np.ndarray:
+def load_raw_labels(path, half: np.ndarray | None = None, n_frames: int = N_FRAMES) -> np.ndarray:
     """Wczytuje surowe etykiety i bezpiecznie wyrównuje do video_frame 0..n_frames-1."""
     raw = pd.read_csv(path, dtype={"label": str})
 
@@ -296,10 +322,12 @@ def load_raw_labels(
         n_graded = len(graded_idx)
         if len(raw) == n_graded and raw["frame"].min() == 0 and raw["frame"].max() == n_graded - 1:
             raise ValueError(
-                f"Plik ma dokładnie {n_graded} wierszy (tyle co graded), ale indeksy 0..{n_graded-1}! "
+                f"Plik ma dokładnie {n_graded} wierszy (tyle co graded), ale indeksy 0..{n_graded - 1}! "
                 "Prawdopodobnie zresetowano indeks (reset_index) przed zapisem CSV."
             )
-        if len(raw) == n_graded and np.array_equal(np.sort(raw["frame"].to_numpy()) - 1, graded_idx):
+        if len(raw) == n_graded and np.array_equal(
+            np.sort(raw["frame"].to_numpy()) - 1, graded_idx
+        ):
             raise ValueError(
                 "Wykryto przesunięcie indeksów o +1 na klatkach graded (użyto 1-bazowego frame_id zamiast video_frame)!"
             )
@@ -346,9 +374,7 @@ def load_half(n_frames: int = N_FRAMES) -> np.ndarray:
                 f"load_frames zwróciło {len(frames)} klatek, oczekiwano dokładnie {n_frames}."
             )
         return (
-            frames.set_index("video_frame")["half"]
-            .reindex(range(n_frames))
-            .to_numpy(dtype=float)
+            frames.set_index("video_frame")["half"].reindex(range(n_frames)).to_numpy(dtype=float)
         )
     except (FileNotFoundError, ImportError) as exc:
         warnings.warn(
@@ -427,7 +453,9 @@ def run_tests() -> None:
     # 6. Wejście krótsze niż okno filtra: długość wyjścia musi zgadzać się z wejściem
     for n in (1, 3, 6):
         arr = np.array([H, A, H, A, H, A][:n], dtype=np.int8)
-        assert mode_filter(arr, cfg.mode_win).shape == arr.shape, f"mode_filter zmienia długość (n={n})"
+        assert mode_filter(arr, cfg.mode_win).shape == arr.shape, (
+            f"mode_filter zmienia długość (n={n})"
+        )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             assert smooth_half(arr, cfg).shape == arr.shape, f"smooth_half zmienia długość (n={n})"
@@ -440,12 +468,18 @@ def run_tests() -> None:
     # 8. Po fallbacku nie wolno doklejać backfillu (uratowany przebieg zostaje dokładnie 10 klatek)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        assert (smooth_half(short_only, cfg) != UNK).sum() == 10, "Backfill po fallbacku rozszerzył przebieg."
+        assert (smooth_half(short_only, cfg) != UNK).sum() == 10, (
+            "Backfill po fallbacku rozszerzył przebieg."
+        )
 
     # 9. Długa luka między różnymi etykietami zostaje X (nie zgadujemy punktu zmiany)
     gap = np.array([A] * 100 + [UNK] * 100 + [H] * 100, dtype=np.int8)
     res_gap = smooth_half(gap, cfg)
-    assert (res_gap[100:200] == UNK).all() and (res_gap[:100] == A).all() and (res_gap[200:] == H).all()
+    assert (
+        (res_gap[100:200] == UNK).all()
+        and (res_gap[:100] == A).all()
+        and (res_gap[200:] == H).all()
+    )
 
     print("Wszystkie testy jednostkowe i niezmienników zakończone sukcesem (OK)!")
 
@@ -484,10 +518,12 @@ if __name__ == "__main__":
 
     print("\nRozkład etykiet (surowe -> wygładzone):")
     print(
-        pd.DataFrame({
-            "raw": pd.Series(raw).fillna("X").value_counts(),
-            "smoothed": pd.Series(smoothed).value_counts(),
-        })
+        pd.DataFrame(
+            {
+                "raw": pd.Series(raw).fillna("X").value_counts(),
+                "smoothed": pd.Series(smoothed).value_counts(),
+            }
+        )
         .fillna(0)
         .astype(int)
         .to_string()

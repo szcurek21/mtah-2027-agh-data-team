@@ -46,15 +46,15 @@ pass (§7 of the spec): `tau` (proximity scale), `flight_speed`,
 from src.possession import predict_possession
 
 result = predict_possession(
-    frames,                  # pd.DataFrame from decoder.load.load_frames
-    teams=teams,             # {slot: 'home'/'away'}; None → kick-off fallback
-    dead_mask=dead_mask,     # bool array from Dead Ball module (None = all live)
-    segments=segments,       # optional restart hints (restart_xy, confidence, end)
+    frames,  # pd.DataFrame from decoder.load.load_frames
+    teams=teams,  # {slot: 'home'/'away'}; None → kick-off fallback
+    dead_mask=dead_mask,  # bool array from Dead Ball module (None = all live)
+    segments=segments,  # optional restart hints (restart_xy, confidence, end)
 )
-result.p_home         # (N,) probability of home possession
-result.confidence     # (N,) per-frame reliability
-result.labels         # 'H' / 'A' on live frames, 'X' elsewhere
-result.boundaries     # [(frame, from, to)] candidate takeovers for the team decoder
+result.p_home  # (N,) probability of home possession
+result.confidence  # (N,) per-frame reliability
+result.labels  # 'H' / 'A' on live frames, 'X' elsewhere
+result.boundaries  # [(frame, from, to)] candidate takeovers for the team decoder
 result.frame_labels(dead_mask)  # 'H'/'A'/'D'/'X' view (D owned by Dead Ball module)
 ```
 

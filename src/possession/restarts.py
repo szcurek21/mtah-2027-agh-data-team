@@ -5,9 +5,10 @@ dostarcza `dead_mask` / `segments`; my tylko konsumujemy). Wykonawca jest
 inferowany geometrycznie (§4.6): drużyna, której zawodnik jest średnio
 najbliżej punktu wznowienia w pierwszych klatkach po restarcie.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -190,8 +191,6 @@ def apply_executor_teams(
     for r in restarts:
         team = r.team or infer_executor(ball_xy, players_h, players_a, r, params)
         out.append(
-            RestartEvent(
-                frame=r.frame, team=team, weight=r.weight, xy=r.xy, source=r.source
-            )
+            RestartEvent(frame=r.frame, team=team, weight=r.weight, xy=r.xy, source=r.source)
         )
     return out

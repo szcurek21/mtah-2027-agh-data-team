@@ -28,5 +28,7 @@ for half, first, last in HALF_BLOCKS[MATCH]:
             continue
         med = np.median(xs)
         side = "PRAWO (+x)" if med > 0 else "LEWO (-x)"
-        print(f"Połowa {half}, {team}: {len(xs)} klatek z piłką, "
-              f"mediana ball_x = {med:+.1f} m  ->  atakuje w {side}")
+        print(
+            f"Połowa {half}, {team}: {len(xs)} klatek z piłką, "
+            f"mediana ball_x = {med:+.1f} m  ->  atakuje w {side}"
+        )

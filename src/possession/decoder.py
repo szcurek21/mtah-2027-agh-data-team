@@ -13,6 +13,7 @@ egzekwowany przez koszt przełączenia λ i minimalny czas trwania d_min).
 
 Czysta funkcja: deterministyczna, bez stochastyki.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -20,7 +21,6 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .config import PossessionParams
-from .restarts import RestartEvent
 
 H, A = 1, 2  # kody etykiet wewnętrznych
 
@@ -39,8 +39,11 @@ class DecodeResult:
 
 
 def _viterbi(
-    e_h: np.ndarray, e_a: np.ndarray, switch_cost: float,
-    init_team: int | None = None, init_weight: float = 0.0,
+    e_h: np.ndarray,
+    e_a: np.ndarray,
+    switch_cost: float,
+    init_team: int | None = None,
+    init_weight: float = 0.0,
 ) -> np.ndarray:
     """Viterbi dla dwóch stanów. e_h/e_a = emisja (log-ll) na korzyść stanu.
 
@@ -50,7 +53,6 @@ def _viterbi(
     labels = np.zeros(n, dtype=np.int8)
     if n == 0:
         return labels
-    NEG = -1e18
     dp_h = np.empty(n)
     dp_a = np.empty(n)
     bp_h = np.zeros(n, dtype=np.int8)  # 0=poprzedni H, 1=poprzedni A
@@ -108,9 +110,7 @@ def _enforce_min_dwell(
         change = np.flatnonzero(lab[1:] != lab[:-1]) + 1
         starts = np.concatenate([[0], change])
         ends = np.concatenate([change, [n]])
-        viol = [
-            (s, e) for s, e in zip(starts, ends) if e - s < min_dwell
-        ]
+        viol = [(s, e) for s, e in zip(starts, ends) if e - s < min_dwell]
         if not viol:
             break
         merged_any = False
@@ -162,8 +162,7 @@ def _decode_segment(
     fwd_bounds = _switch_frames(fwd)
 
     # --- przejście 2: backward (odwrócona sekwencja) ---
-    bwd_rev = _viterbi(e_h[::-1], e_a[::-1], params.switch_cost,
-                       init_team=None, init_weight=0.0)
+    bwd_rev = _viterbi(e_h[::-1], e_a[::-1], params.switch_cost, init_team=None, init_weight=0.0)
     bwd_rev = _enforce_min_dwell(bwd_rev, e_h[::-1], e_a[::-1], params.min_dwell)
     bwd = bwd_rev[::-1]
     bwd_bounds = _switch_frames(bwd)
@@ -177,8 +176,7 @@ def _decode_segment(
     used_b: set[int] = set()
     for fb in fwd_bounds:
         # szukaj najbliższej bwd granicy w oknie
-        cand = [b for b in bwd_bounds
-                if b not in used_b and abs(b - fb) <= win]
+        cand = [b for b in bwd_bounds if b not in used_b and abs(b - fb) <= win]
         if cand:
             b = min(cand, key=lambda x: abs(x - fb))
             used_b.add(b)

@@ -1,10 +1,15 @@
 
 data/
 results/*.csv
+results/*.manifest.json
 results/*.png
 .venv/
 __pycache__/
 *.pyc
 .idea/
+.DS_Store
+.ruff_cache/
+.pytest_cache/
+.cache/
 
 reports/

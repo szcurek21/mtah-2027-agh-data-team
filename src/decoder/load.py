@@ -9,16 +9,13 @@ import pandas as pd
 from kloppy import metrica
 from kloppy.domain import TrackingDataset
 
-DATA_DIR = Path(
-    os.environ.get("MTAH_DATA_DIR", Path.home() / "more-than-a-hack-2027" / "data")
-)
+DATA_DIR = Path(os.environ.get("MTAH_DATA_DIR", Path.home() / "more-than-a-hack-2027" / "data"))
 FPS = 25
-PITCH_LENGTH = 105.3  
+PITCH_LENGTH = 105.3
 
 HALF_BLOCKS: dict[str, list[tuple[int, int, int]]] = {
     "BAR-ATH": [(1, 11185, 90651), (2, 110808, 190197)],
 }
-
 
 
 def find_files(match: str, view: str, data_dir: Path = DATA_DIR) -> tuple[Path, Path]:
@@ -27,8 +24,7 @@ def find_files(match: str, view: str, data_dir: Path = DATA_DIR) -> tuple[Path, 
     meta = list(data_dir.rglob(f"{match}_{view}_atd.xml"))
     if len(raw) != 1 or len(meta) != 1:
         raise FileNotFoundError(
-            f"Szukałam {match}_{view}_atd.txt/.xml w {data_dir}; "
-            f"znalazłam txt={raw}, xml={meta}"
+            f"Szukałam {match}_{view}_atd.txt/.xml w {data_dir}; znalazłam txt={raw}, xml={meta}"
         )
     return meta[0], raw[0]
 
@@ -51,7 +47,6 @@ def team_of(match: str, view: str = "tactical", data_dir: Path = DATA_DIR) -> di
         for t in ds.metadata.teams
         for p in t.players
     }
-
 
 
 def _slot_ids(df: pd.DataFrame) -> list[str]:
@@ -95,7 +90,7 @@ ATTACK_CODES = {"BALL IN FINAL THIRD", "BALL IN THE BOX"}
 def _home_attacks_right_by_tags(
     frames: pd.DataFrame, match: str, data_dir: Path
 ) -> dict[int, float] | None:
-    
+
     from kloppy import sportscode
 
     paths = list(data_dir.rglob(f"{match}_tactical_smart_tagging.xml"))
@@ -170,9 +165,7 @@ def load_frames(
     _fix_pitch_length(frames, ds.metadata.pitch_dimensions.pitch_length or 105)
     if view == "tactical" and match in HALF_BLOCKS:
         _add_halves(frames, HALF_BLOCKS[match])
-        frames.attrs["flipped"] = _orient(
-            frames, match, team_of(match, view, data_dir), data_dir
-        )
+        frames.attrs["flipped"] = _orient(frames, match, team_of(match, view, data_dir), data_dir)
     else:
         frames.attrs["flipped"] = {}
 
@@ -183,7 +176,7 @@ def load_frames(
 
 
 def to_long(frames: pd.DataFrame, teams: dict[str, str]) -> pd.DataFrame:
-    
+
     base = ["video_frame", "t", "half", "graded"]
     parts = [
         frames[base + ["ball_x", "ball_y", "ball_speed"]]
@@ -200,21 +193,26 @@ def to_long(frames: pd.DataFrame, teams: dict[str, str]) -> pd.DataFrame:
     return long.sort_values(["video_frame", "team", "object_id"], ignore_index=True)
 
 
-
 def describe(match: str, view: str) -> None:
     frames = load_frames(match, view)
     teams = team_of(match, view)
     print(f"{match} / {view}: {len(frames)} klatek, {len(_slot_ids(frames))} slotów")
-    print("Slotów home/away:", sum(v == "home" for v in teams.values()),
-          "/", sum(v == "away" for v in teams.values()))
+    print(
+        "Slotów home/away:",
+        sum(v == "home" for v in teams.values()),
+        "/",
+        sum(v == "away" for v in teams.values()),
+    )
     print("Klatek ocenianych:", int(frames["graded"].sum()))
     print("Obrócone połowy:", frames.attrs.get("flipped"))
-    print(f"Piłka widoczna: {frames['ball_x'].notna().mean():.1%} wszystkich klatek, "
-          f"{frames.loc[frames['graded'], 'ball_x'].notna().mean():.1%} ocenianych")
+    print(
+        f"Piłka widoczna: {frames['ball_x'].notna().mean():.1%} wszystkich klatek, "
+        f"{frames.loc[frames['graded'], 'ball_x'].notna().mean():.1%} ocenianych"
+    )
     print("Kolumny:")
     for c in frames.columns[:12]:
         print(f"  {c}: {frames[c].dtype}")
-    print(f"  ... i dalej {{slot}}_x / _y / _s dla każdego slotu")
+    print("  ... i dalej {slot}_x / _y / _s dla każdego slotu")
 
 
 if __name__ == "__main__":
