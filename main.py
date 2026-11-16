@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from src.decoder.load import load_frames, team_of
-from src.decoder.time_decoder import smooth_labels, load_half
+from src.decoder.time_decoder import load_half, smooth_labels
 from src.dead_ball.detector import DeadBallDetector
 from src.possession.pipeline import predict_possession
 
