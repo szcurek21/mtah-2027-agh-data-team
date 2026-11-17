@@ -30,6 +30,7 @@ def frames_since_ball_seen(visible: np.ndarray) -> np.ndarray:
     last_seen = pd.Series(last_seen).ffill().to_numpy()
     return idx - last_seen
 
+
 def min_dist_to_players(ball_xy: np.ndarray, players_xy: np.ndarray) -> np.ndarray:
     """
     Oblicza dystans od piłki do najbliższego gracza z macierzy (N, M, 2).
@@ -103,9 +104,7 @@ def smooth_ball(ball_xy: np.ndarray, window: int = 5) -> np.ndarray:
 def count_within(ball_xy: np.ndarray, players_xy: np.ndarray, radius: float) -> np.ndarray:
     """Liczba zawodników w promieniu radius od piłki; NaN, gdy piłki nie widać."""
     dists = np.linalg.norm(players_xy - ball_xy[:, None, :], axis=2)
-    counts = (
-        (dists < radius).sum(axis=1).astype(float)
-    )  # NaN < r to False, więc brak gracza nie liczy się
+    counts = (dists < radius).sum(axis=1).astype(float)
     counts[np.isnan(ball_xy).any(axis=1)] = np.nan
     return counts
 
