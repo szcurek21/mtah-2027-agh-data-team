@@ -11,10 +11,10 @@ HALF_W = 68.0 / 2
 
 
 # ===FUNKCJE==
-def extract_team_xy(df, slots):
-    # pobieramy na przemian kolumny X i Y dla każdego zawodnika
+def extract_team_xy(df: pd.DataFrame, slots: list[str]) -> np.ndarray:
+    if not slots:
+        return np.empty((len(df), 0, 2), dtype=float)
     cols = [f"{s}_{axis}" for s in slots for axis in ["x", "y"]]
-    # przekształcamy na kształt (klatki, zawodnicy, 2 współrzędne)
     return df[cols].to_numpy().reshape(len(df), len(slots), 2)
 
 
@@ -25,15 +25,10 @@ def ball_visible(ball_xy: np.ndarray) -> np.ndarray:
 
 # funkcja określająca liczbę klatek od ostatniej na której było widać piłkę, 0 jeśli widzimy w bieżącej klatce, NaN jeśli jeszcze nie widzieliśmy
 def frames_since_ball_seen(visible: np.ndarray) -> np.ndarray:
-    out = np.full(len(visible), np.nan)
-    last = None
-    for i, v in enumerate(visible):
-        if v:
-            last = i
-        if last is not None:
-            out[i] = i - last
-    return out
-
+    idx = np.arange(len(visible), dtype=float)
+    last_seen = np.where(visible, idx, np.nan)
+    last_seen = pd.Series(last_seen).ffill().to_numpy()
+    return idx - last_seen
 
 def min_dist_to_players(ball_xy: np.ndarray, players_xy: np.ndarray) -> np.ndarray:
     """
