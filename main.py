@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.dead_ball.detector import DeadBallDetector
 from src.decoder.load import load_frames, team_of
 from src.decoder.time_decoder import load_half, smooth_labels
-from src.dead_ball.detector import DeadBallDetector
 from src.possession.pipeline import predict_possession
 
 N_FRAMES = 199_319
@@ -34,17 +34,21 @@ def stage_extract_features(data: dict) -> dict:
 
     try:
         from src.cechy import compute_features
+
         features_df = compute_features(frames, teams)
 
-        # Convert DataFrame to dict format expected by dead_ball
+        def _to_np(col: str):
+            return features_df[col].to_numpy() if col in features_df.columns else None
+
+        # Convert DataFrame columns to pure NumPy arrays expected by dead_ball
         features = {
-            "median_speed": features_df.get("ball_speed_smooth"),
-            "p90_speed": features_df.get("ball_speed_1s"),
-            "ball_visible": features_df.get("ball_visible"),
-            "ball_outside_pitch": features_df.get("ball_outside_pitch"),
-            "dist_to_home": features_df.get("dist_H"),
-            "dist_to_away": features_df.get("dist_A"),
-            "frames_since_ball_seen": features_df.get("frames_since_ball_seen"),
+            "median_speed": _to_np("ball_speed_smooth"),
+            "p90_speed": _to_np("ball_speed_1s"),
+            "ball_visible": _to_np("ball_visible"),
+            "ball_outside_pitch": _to_np("ball_outside_pitch"),
+            "dist_to_home": _to_np("dist_H"),
+            "dist_to_away": _to_np("dist_A"),
+            "frames_since_ball_seen": _to_np("frames_since_ball_seen"),
         }
         print(f"Extracted {len([v for v in features.values() if v is not None])} features")
         return features
@@ -60,7 +64,9 @@ def stage_detect_dead_ball(data: dict, features: dict, allow_missing_tags: bool)
     # Try to find smart_tagging.xml
     smart_tagging_path = None
     try:
-        data_dir = Path(os.environ.get("MTAH_DATA_DIR", Path.home() / "more-than-a-hack-2027" / "data"))
+        data_dir = Path(
+            os.environ.get("MTAH_DATA_DIR", Path.home() / "more-than-a-hack-2027" / "data")
+        )
         match = data.get("match", "BAR-ATH")
         smart_tagging_files = list(data_dir.rglob(f"{match}_tactical_smart_tagging.xml"))
         if smart_tagging_files:
@@ -87,7 +93,9 @@ def stage_classify_possession(data: dict, dead_output) -> dict:
         return {"possession": None, "dead_mask": np.zeros(N_FRAMES, dtype=bool)}
 
     # Create dead_mask from dead_ball output
-    dead_mask = dead_output.is_dead(threshold=0.5) if dead_output else np.zeros(len(frames), dtype=bool)
+    dead_mask = (
+        dead_output.is_dead(threshold=0.5) if dead_output else np.zeros(len(frames), dtype=bool)
+    )
 
     pos = predict_possession(frames, teams=teams, dead_mask=dead_mask)
     return {"possession": pos, "dead_mask": dead_mask}
@@ -151,6 +159,11 @@ def main() -> None:
         # Stage 5: Temporal decode
         print("Stage 5: Temporal decoding and smoothing...")
         labels = stage_temporal_decode(possession_result, dead_mask)
+
+        # Przywrócenie etykiet martwej piłki 'D' po wygładzaniu
+        if dead_mask is not None:
+            labels = labels.copy()
+            labels[dead_mask] = "D"
 
         # Create submission DataFrame
         df = pd.DataFrame({"frame": np.arange(N_FRAMES, dtype=np.int64), "label": labels})
